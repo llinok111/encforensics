@@ -249,8 +249,8 @@ Verified separately: 24-byte inputs (`更多操作关闭对话`) recover, 27-byt
 | | Count |
 |---|---|
 | Upstream tests (unchanged, baseline confirmed before any modification) | **507 passing, 8 pending, 0 failing** |
-| Probe layer tests (new) | **94** |
-| Combined `npm test` | **601 passing, 8 pending, 0 failing** |
+| Probe layer tests (new) | **120** |
+| Combined `npm test` | **627 passing, 8 pending, 0 failing** |
 
 Upstream baseline was captured *before* touching anything, by running `npm test` on the
 fresh clone: `507 passing (23s), 8 pending`. The same figure after the change confirms

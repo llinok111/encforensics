@@ -191,14 +191,14 @@ exact base revision, and the list of modifications.
 
 ```console
 npm install
-npm test          # 601 tests: 507 upstream + 94 for the probe layer
+npm test          # 627 tests: 507 upstream + 120 for the probe layer
 npm run test:probe  # just the probe layer
 npm run lint
 ```
 
 Requires Node.js 22 or later (inherited from upstream's `engines` field).
 
-Measured on Node 22.22.2 / Windows: `601 passing, 8 pending`, `npm run lint` clean.
+Measured on Node 22.22.2 / Windows: `627 passing, 8 pending`, `npm run lint` clean.
 
 ### Layout
 
@@ -212,6 +212,6 @@ lib/probe/
   blocks.js            Unicode block classification and the naturalness score
   commonness.js        how-common-is-this-text, judged by the code pages themselves
 bin/encprobe.js        CLI
-test/probe/            94 tests
+test/probe/            120 tests
 docs/evidence.md       every number in this README, and the failed experiments
 ```

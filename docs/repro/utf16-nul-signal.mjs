@@ -27,7 +27,7 @@ const pad = (s, w) => String(s).padEnd(w)
 
 // Share of code units whose high byte is 0x00, for a little-endian reading.
 function zeroRatio (buf) {
-  let z = 0, n = 0
+  let z = 0; let n = 0
   for (let i = 1; i < buf.length; i += 2) { n++; if (buf[i] === 0) z++ }
   return n ? z / n : 0
 }

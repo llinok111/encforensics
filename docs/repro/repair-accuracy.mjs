@@ -44,7 +44,7 @@ for (const c of CORPUS) {
   const strings = load(c.file, c.re)
   if (!strings) { console.log(`${c.lang}: corpus missing, skipped`); continue }
   for (const enc of c.chains) {
-    let ll = 0, ok = 0, miss = 0, wrong = 0, lost = 0
+    let ll = 0; let ok = 0; let miss = 0; let wrong = 0; let lost = 0
     for (let k = 0; k < N; k++) {
       const orig = strings[(k * 7) % strings.length]
       const moj = iconv.decode(Buffer.from(orig, "utf8"), enc)
@@ -67,7 +67,7 @@ console.log(pad("TOTAL", 26) + pad(T.ll, 13) + pad(`${T.ok} ${(T.ok / T.ll * 100
 console.log("\nlatin-1 family (always lossless)")
 const zh = load("loc-zh.json", /[\u4e00-\u9fff]/)
 for (const enc of ["iso-8859-1", "windows-1252"]) {
-  let n = 0, ok = 0, miss = 0, wrong = 0
+  let n = 0; let ok = 0; let miss = 0; let wrong = 0
   for (let k = 0; k < N; k++) {
     const orig = zh[(k * 7) % zh.length]
     const utf8 = Buffer.from(orig, "utf8")
@@ -83,11 +83,11 @@ for (const enc of ["iso-8859-1", "windows-1252"]) {
 }
 
 console.log("\nfalse positives on already-correct text")
-let fp = 0, total = 0
+let fp = 0; let total = 0
 for (const c of CORPUS) {
   const strings = load(c.file, c.re)
   if (!strings) continue
-  let changed = 0, n = 0
+  let changed = 0; let n = 0
   for (let k = 0; k < N; k++) {
     const s = strings[(k * 7) % strings.length]
     n++

@@ -82,7 +82,7 @@ for (const c of CASES) {
   if (!strings) { console.log(`${c.lang}: corpus missing, skipped`); continue }
   for (const enc of c.encs) {
     for (const len of [16, 40, 120, 400]) {
-      let n = 0, chOk = 0, jsOk = 0, chTop3 = 0
+      let n = 0; let chOk = 0; let jsOk = 0; let chTop3 = 0
       for (const text of buildSamples(strings, len, 40)) {
         let buf
         try { buf = iconv.encode(text, enc) } catch (e) { continue }

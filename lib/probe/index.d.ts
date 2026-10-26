@@ -124,16 +124,16 @@ export interface LocateResult {
   context?: { bytes: string[]; offsetInContext: number }
 }
 
-export function analyze(input: Uint8Array | string, options?: { maxCandidates?: number }): AnalysisReport
-export function repair(input: Uint8Array | string, options?: { maxDepth?: number }): RepairResult
-export function locate(input: Uint8Array | string, encoding?: string): LocateResult
-export function decodeBest(input: Uint8Array, options?: { maxCandidates?: number }): { report: AnalysisReport; text: string }
-export function looksLikeMojibake(text: string): boolean
+export function analyze (input: Uint8Array | string, options?: { maxCandidates?: number }): AnalysisReport
+export function repair (input: Uint8Array | string, options?: { maxDepth?: number }): RepairResult
+export function locate (input: Uint8Array | string, encoding?: string): LocateResult
+export function decodeBest (input: Uint8Array, options?: { maxCandidates?: number }): { report: AnalysisReport; text: string }
+export function looksLikeMojibake (text: string): boolean
 
-export function validateUtf8(buf: Uint8Array): Utf8Validation
-export function analyzeUtf16(buf: Uint8Array, littleEndian: boolean): UnitAnalysis
-export function analyzeUtf32(buf: Uint8Array, littleEndian: boolean): UnitAnalysis
-export function naturalness(text: string): {
+export function validateUtf8 (buf: Uint8Array): Utf8Validation
+export function analyzeUtf16 (buf: Uint8Array, littleEndian: boolean): UnitAnalysis
+export function analyzeUtf32 (buf: Uint8Array, littleEndian: boolean): UnitAnalysis
+export function naturalness (text: string): {
   score: number
   total: number
   writing: number
@@ -143,6 +143,6 @@ export function naturalness(text: string): {
   dominant: string | null
   dominance: number
 }
-export function classify(codePoint: number): string
-export function canEncode(encoding: string): boolean
-export function roundTrip(buf: Uint8Array, encoding: string): { text: string; lossless: boolean; byteLength: number } | null
+export function classify (codePoint: number): string
+export function canEncode (encoding: string): boolean
+export function roundTrip (buf: Uint8Array, encoding: string): { text: string; lossless: boolean; byteLength: number } | null
