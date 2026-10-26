@@ -14,4 +14,7 @@ package-lock.json
 
 .nyc_output
 
-iconv-lite.tgz
+encforensics.tgz
+
+# Verification corpus (downloaded by docs/repro/fetch-corpus.sh, several MB each)
+/docs/repro/work

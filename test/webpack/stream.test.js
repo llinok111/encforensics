@@ -1,8 +1,8 @@
 import { strict as assert } from "assert"
-import iconv from "iconv-lite"
+import iconv from "encforensics"
 import * as stream from "stream"
 
-describe("iconv-lite with streams", function () {
+describe("encforensics with streams", function () {
   it("supports streams when explicitly enabled", function () {
     iconv.enableStreamingAPI(stream)
     assert(iconv.supportsStreams)

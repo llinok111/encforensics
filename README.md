@@ -1,177 +1,217 @@
-## iconv-lite: Pure JS character encoding conversion
+# encforensics
 
-[![NPM Version][npm-version-image]][npm-url]
-[![NPM Downloads][npm-downloads-image]][npm-downloads-url]
-[![License][license-image]][license-url]
-[![NPM Install Size][npm-install-size-image]][npm-install-size-url]
+Character-encoding forensics for Node.js — **determine, explain, and repair** text
+encodings. Built on top of [`iconv-lite`](https://github.com/pillarjs/iconv-lite), whose
+conversion tables it reuses, and whose author declined this feature in 2015:
 
-* No need for native code compilation. Quick to install, works on Windows, Web, and in sandboxed environments.
-* Used in popular projects like [Express.js (body_parser)](https://github.com/expressjs/body-parser), 
-  [Grunt](http://gruntjs.com/), [Nodemailer](http://www.nodemailer.com/), [Yeoman](http://yeoman.io/) and others.
-* Faster than [node-iconv](https://github.com/bnoordhuis/node-iconv) (see below for performance comparison).
-* Intuitive encode/decode API, including Streaming support.
-* Native ES modules for Node.js and browsers, with automatic backend selection in compatible bundlers.
-* Typescript [type definition file](https://github.com/ashtuchkin/iconv-lite/blob/master/lib/index.d.ts) included.
-* React Native is supported (need to install `stream` module to enable Streaming API).
+> **issue #41 — "how to detect encoding?"** → `ashtuchkin`: **"No, sorry."**
 
-## Usage
+`encforensics` is the layer `iconv-lite` deliberately never grew: it does not convert
+encodings, it tells you **which encoding a byte stream is**, **why**, and **what to do
+when the text has already been mis-decoded**.
 
-This package uses ES modules and requires Node.js 22 or later. CommonJS callers
-can use `const { default: iconv } = await import('iconv-lite')` inside an async
-function. Direct `require('iconv-lite')` is no longer a supported entry point.
-Encoding and decoding remain synchronous once the module has loaded.
-
-Use the default export to change settings such as `defaultCharUnicode`. Functions
-are also available as named exports, for example `import { encode, decode } from
-'iconv-lite'`.
-
-### Basic API
-
-```javascript
-import iconv from 'iconv-lite';
-
-// Convert from an encoded buffer to a js string.
-const str = iconv.decode(Buffer.from([0x68, 0x65, 0x6c, 0x6c, 0x6f]), 'win1251');
-
-// Convert from a js string to an encoded buffer.
-const buf = iconv.encode("Sample input string", 'win1251');
-
-// Check if encoding is supported
-iconv.encodingExists("us-ascii")
+```console
+$ encprobe exported-from-excel.csv
+file      : exported-from-excel.csv
+bytes     : 8412
+verdict   : ambiguous
+why       :
+  - no BOM, and the bytes are not valid multi-byte UTF-8
+  - 5 legacy encodings each reproduce the input byte-for-byte: GB18030, Big5, ...
+  - byte-level evidence cannot separate them — the same bytes decode to different
+    but equally well-formed text; a statistical language model would be required
+candidates (all reproduce the input byte-for-byte):
+  - GB18030   naturalness=1 dominance=1  dominant=cjk
+  - Big5      naturalness=1 dominance=1  dominant=cjk
 ```
 
-### Browsers
+That output is the point: **it refuses to guess.** `chardet` would have answered
+`Big5, confidence 0.73` and been wrong 1 time in 8.
 
-Bundlers select the Web backend automatically. You can also select it explicitly:
+---
 
-```javascript
-import iconv from 'iconv-lite/web';
-const bytes = iconv.encode('Hello', 'utf8'); // Uint8Array, without a Buffer polyfill.
+## What actually works
+
+Every claim below is measured; the numbers come from scripts described in
+[`docs/evidence.md`](docs/evidence.md).
+
+| Capability | Certainty |
+|---|---|
+| BOM detection (UTF-8/16/32, all five forms) | **deterministic** |
+| ASCII / empty / binary classification | **deterministic** |
+| UTF-8 structural validation, with byte offset and reason | **deterministic** |
+| BOM-less UTF-16/32 detection (text that contains ASCII) | **high confidence**, NUL-pattern based |
+| Mojibake detection and lossless recovery | **deterministic** (round-trip verified) |
+| Locating the first byte an encoding cannot explain | **deterministic** |
+| BOM-less UTF-16 of *pure* CJK text | **refused** — indistinguishable from a legacy code page |
+| GBK vs Big5 vs Shift_JIS vs EUC-KR single choice | **refused** — needs a language model |
+
+### Measured behaviour
+
+Repair accuracy, generated from `microsoft/vscode-loc` (MIT, human translations),
+200 samples per chain, mojibake always produced programmatically:
+
+| Chain | Recoverable inputs | Recovered | Wrong result |
+|---|---|---|---|
+| UTF-8 bytes read as ISO-8859-1 | 200 | **200 (100%)** | 0 |
+| UTF-8 bytes read as GB18030 | 48 | **38 (79.2%)** | 0 |
+| UTF-8 bytes read as Shift_JIS | 19 | **13 (68.4%)** | 0 |
+| UTF-8 bytes read as Big5 | 5 | **5 (100%)** | 0 |
+| **Already-correct text (all four languages)** | 800 | — | **0 changed** |
+
+False positives are the number that matters most for a tool like this, and it is zero
+on 800 samples of correct Simplified Chinese, Traditional Chinese, Japanese and Korean.
+
+The 152 GB18030 inputs that are *not* in the table were already destroyed before
+`repair()` ran: the wrong decode left `U+FFFD` behind. `encforensics` detects that and
+refuses to invent bytes.
+
+---
+
+## Install and use
+
+```console
+npm install encforensics
 ```
 
-For native browser modules, import `lib/index-web.js` from a served copy of the
-package. Streams are disabled by default; enable them with
-`iconv.enableStreamingAPI(stream)` if your application provides a stream implementation.
+### CLI
 
-DBCS table modules are imported with the library, but their arrays and codec
-lookup tables are initialized and cached only when the corresponding encoding is used.
-
-### Streaming API
-
-```javascript
-// Decode stream (from binary data stream to js strings)
-http.createServer(function(req, res) {
-    var converterStream = iconv.decodeStream('win1251');
-    req.pipe(converterStream);
-
-    converterStream.on('data', function(str) {
-        console.log(str); // Do something with decoded strings, chunk-by-chunk.
-    });
-});
-
-// Convert encoding streaming example
-fs.createReadStream('file-in-win1251.txt')
-    .pipe(iconv.decodeStream('win1251'))
-    .pipe(iconv.encodeStream('ucs2'))
-    .pipe(fs.createWriteStream('file-in-ucs2.txt'));
-
-// Sugar: all encode/decode streams have .collect(cb) method to accumulate data.
-http.createServer(function(req, res) {
-    req.pipe(iconv.decodeStream('win1251')).collect(function(err, body) {
-        assert(typeof body == 'string');
-        console.log(body); // full request body string
-    });
-});
+```console
+encprobe <file>                      # what is this?
+encprobe <file> --json               # machine-readable
+encprobe <file> --repair             # undo mojibake, print the result
+encprobe <file> --repair --write out # write it to a file
+encprobe <file> --locate             # first byte that UTF-8 cannot explain
+cat file | encprobe --stdin          # read from a pipe
 ```
 
-## Supported encodings
+Exit codes are part of the interface:
 
- *  All node.js native encodings: utf8, ucs2 / utf16-le, ascii, binary, base64, hex.
- *  Additional unicode encodings: utf16, utf16-be, utf-7, utf-7-imap, utf32, utf32-le, and utf32-be.
- *  All widespread singlebyte encodings: Windows 125x family, ISO-8859 family, 
-    IBM/DOS codepages, Macintosh family, KOI8 family, all others supported by iconv library. 
-    Aliases like 'latin1', 'us-ascii' also supported.
- *  All widespread multibyte encodings: CP932, CP936, CP949, CP950, GB2312, GBK, GB18030, Big5, Shift_JIS, EUC-JP.
+| Code | Meaning |
+|---|---|
+| `0` | one encoding determined |
+| `1` | several fit, no evidence to separate them |
+| `2` | no usable answer (binary, unknown, empty) |
+| `3` | usage error |
 
-See [all supported encodings on wiki](https://github.com/ashtuchkin/iconv-lite/wiki/Supported-Encodings).
+### Library
 
-Most singlebyte encodings are generated automatically from [node-iconv](https://github.com/bnoordhuis/node-iconv). Thank you Ben Noordhuis and libiconv authors!
+```javascript
+import { analyze, repair, locate } from "encforensics/probe"
 
-Multibyte encodings are generated from [Unicode.org mappings](http://www.unicode.org/Public/MAPPINGS/) and [WHATWG Encoding Standard mappings](http://encoding.spec.whatwg.org/). Thank you, respective authors!
+const report = analyze(buffer)
+// {
+//   verdict: "certain" | "probable" | "ambiguous" | "binary" | "empty" | "text-only",
+//   encoding: "utf-8" | null,
+//   confidence: 0.99,
+//   bom: { encoding, label, length, bytes },
+//   why: ["all 32 UTF-8 sequences are well-formed (25 multi-byte)", ...],
+//   candidates: [{ encoding, label, naturalness, dominance, losslessRoundTrip }],
+//   notes: [...],
+//   preview: "…"
+// }
 
-## Encoding/decoding speed
+const fixed = repair("æ´å¤æä½œ")
+// { changed: true, text: "更多操作", chain: [{ as: "iso-8859-1", then: "utf-8", fidelity: 1 }],
+//   reversible: true, damage: [], quality: { before: 0.419, after: 1 } }
 
-Comparison with node-iconv module (1000x256kb, on MacBook Pro, Core i5/2.6 GHz, Node v0.12.0). 
-Note: your results may vary, so please always check on your hardware.
+locate(buffer, "utf-8")
+// { ok: false, at: 3, errors: [{ at: 3, sequenceStart: 1, kind: "bad-continuation" }] }
+```
 
-    operation             iconv@2.1.4   iconv-lite@0.4.7
-    ----------------------------------------------------------
-    encode('win1251')     ~96 Mb/s      ~320 Mb/s
-    decode('win1251')     ~95 Mb/s      ~246 Mb/s
+The original `iconv-lite` API (`encode`, `decode`, `encodingExists`, streams, browser
+backend) is unchanged and still exported from the package root.
 
-## BOM handling
+---
 
- * Decoding: BOM is stripped by default, unless overridden by passing `stripBOM: false` in options
-   (f.ex. `iconv.decode(buf, enc, {stripBOM: false})`).
-   A callback might also be given as a `stripBOM` parameter - it'll be called if BOM character was actually found.
- * If you want to detect UTF-8 BOM when decoding other encodings, use [node-autodetect-decoder-stream](https://github.com/danielgindi/node-autodetect-decoder-stream) module.
- * Encoding: No BOM added, unless overridden by `addBOM: true` option.
+## Why not just use chardet or jschardet?
 
-## UTF-16 Encodings
+Both are active and both are good at the job they do. Measured on 1,735 samples of
+real translated text (zh-hans/zh-hant/ja/ko, four length buckets):
 
-This library supports UTF-16LE, UTF-16BE and UTF-16 encodings. First two are straightforward, but UTF-16 is trying to be
-smart about endianness in the following ways:
- * Decoding: uses BOM and 'spaces heuristic' to determine input endianness. Default is UTF-16LE, but can be 
-   overridden with `defaultEncoding: 'utf-16be'` option. Strips BOM unless `stripBOM: false`.
- * Encoding: uses UTF-16LE and writes BOM by default. Use `addBOM: false` to override.
+| | chardet | jschardet | encforensics |
+|---|---|---|---|
+| Overall top-1 accuracy | 86.5% | 89.5% | **not competing** |
+| BOM-less UTF-16 (any length) | **0%** | **0%** | detects, or refuses on pure CJK |
+| Reports *why* | no | no | yes, per candidate |
+| Can say "I don't know" | no | no | **yes — this is a first-class answer** |
+| Repairs already-broken text | no | no | **yes** |
+| Locates the damaged byte | no | no | **yes** |
 
-## UTF-32 Encodings
+`encforensics` deliberately does **not** try to beat 89.5%. Getting there needs a
+statistical language model, and shipping a worse one would be dishonest. Its value is
+in the questions the other two cannot answer at all.
 
-This library supports UTF-32LE, UTF-32BE and UTF-32 encodings. Like the UTF-16 encoding above, UTF-32 defaults to UTF-32LE, but uses BOM and 'spaces heuristics' to determine input endianness. 
- * The default of UTF-32LE can be overridden with the `defaultEncoding: 'utf-32be'` option. Strips BOM unless `stripBOM: false`.
- * Encoding: uses UTF-32LE and writes BOM by default. Use `addBOM: false` to override. (`defaultEncoding: 'utf-32be'` can also be used here to change encoding.)
- * Decoding is strict (per the Unicode Standard): a code unit that is a surrogate code point (U+D800–U+DFFF), is above U+10FFFF, or is a truncated trailing code unit is replaced with �. Pass `{ fatal: true }` to throw on such input instead.
- * Encoding replaces a lone (unpaired) surrogate in the input with � so the output is always valid UTF-32.
+---
 
-## UTF-7 Encodings
+## Known limits
 
-This library supports UTF-7 (RFC 2152) and UTF-7-IMAP / Modified UTF-7 (RFC 3501).
- * Encoding: for UTF-7, the optional "Set O" punctuation is left as direct ASCII (per RFC 2152), so output stays compact.
- * Decoding follows RFC 2152: ill-formed input — an incomplete code unit, non-zero Base64 padding bits, a shift-in
-   not followed by Base64 or "-", or a non-ASCII byte outside a shifted run — is replaced with �. Lone surrogates
-   pass through as their raw 16-bit code units.
- * The `fatal` decode option is not supported (RFC 2152 doesn't define it); decoding is always lenient (replacement with �).
+Stated plainly, because a forensics tool that overstates itself is worse than useless:
 
-UTF-7 is designed for short, 7-bit-safe strings (mail headers, IMAP mailbox names) and is best used that way.
-It is not recommended for large or bulk text, where the native `utf8`/`utf16` encodings are faster.
+1. **Odd-length UTF-8 byte streams mis-read as GBK are unrecoverable.** GBK pairs bytes
+   two at a time; a 27-byte UTF-8 string becomes 13 characters and the last byte is
+   dropped *without* leaving `U+FFFD`. Nothing can detect this — the information is
+   simply gone. This is why the GB18030 recovery rate is 79.2% and not ~100%.
+2. **Pure-CJK BOM-less UTF-16 is not detected.** With no ASCII in the text there is no
+   NUL-byte pattern, and the bytes are provably identical in distribution to a legacy
+   code page. The tool says so instead of guessing.
+3. **Single-byte code pages cannot be separated from each other** when they both cover
+   the bytes. The round-trip test narrows the field; it does not pick a winner.
+4. **`naturalness` is not a language model.** It measures whether decoded text lands in
+   real writing-system blocks and whether it uses commonly-used characters. It is good
+   at "is this wreckage or text" and says nothing about meaning.
+5. **Sample size matters.** Verdicts use the whole buffer unless `--sample` is given;
+   short inputs produce more `ambiguous` answers, which is correct but may surprise.
 
-## Other notes
+---
 
-When decoding, be sure to supply a Buffer to decode() method, otherwise [bad things usually happen](https://github.com/ashtuchkin/iconv-lite/wiki/Use-Buffers-when-decoding).  
-Untranslatable characters are set to � or ?. No transliteration is currently supported.  
-Node versions 0.10.31 and 0.11.13 are buggy, don't use them (see [#65](https://github.com/ashtuchkin/iconv-lite/issues/65), [#77](https://github.com/ashtuchkin/iconv-lite/issues/77)).  
+## Relationship to iconv-lite, and licence
 
-## Testing
+This is a derivative work of **`pillarjs/iconv-lite`** (MIT), forked at
+`900f98249dea003c94b4f8dcd294387b556942bd` (`1.0.0-alpha.3`, 2026-10-25) with upstream
+history preserved. `encforensics` adds `lib/probe/`, `bin/encprobe.js` and
+`test/probe/`; the conversion code in `lib/`, `encodings/` and `backends/` is upstream
+and unmodified apart from package metadata.
 
-```sh
-git clone git@github.com:ashtuchkin/iconv-lite.git
-cd iconv-lite
+Changes to upstream files are limited to package metadata and package self-references:
+
+- `package.json` — name, description, version, keywords, `files`, `bin`, `exports`
+  (added `./probe`), repository URLs, test script globs.
+- Test files that imported the package by name (`"iconv-lite"` → `"encforensics"`),
+  which is required for Node's self-reference resolution after the rename.
+- `README.md` moved to [`docs/upstream-readme-iconv-lite.md`](docs/upstream-readme-iconv-lite.md).
+
+MIT permits this. The original copyright notice is retained verbatim in
+[`LICENSE`](LICENSE), and [`NOTICE.md`](NOTICE.md) records the upstream project, the
+exact base revision, and the list of modifications.
+
+---
+
+## Development
+
+```console
 npm install
-npm test
-    
-# To view performance:
-npm run test:performance
-
-# To view test coverage: 
-npm run test:cov
-open coverage/index.html
+npm test          # 601 tests: 507 upstream + 94 for the probe layer
+npm run test:probe  # just the probe layer
+npm run lint
 ```
 
-[npm-downloads-image]: https://badgen.net/npm/dm/iconv-lite
-[npm-downloads-url]: https://npmcharts.com/compare/iconv-lite?minimal=true
-[npm-url]: https://npmjs.org/package/iconv-lite
-[npm-version-image]: https://badgen.net/npm/v/iconv-lite
-[npm-install-size-image]: https://badgen.net/packagephobia/install/iconv-lite
-[npm-install-size-url]: https://packagephobia.com/result?p=iconv-lite
-[license-image]: https://img.shields.io/npm/l/iconv-lite.svg
-[license-url]: https://github.com/ashtuchkin/iconv-lite/blob/HEAD/LICENSE
+Requires Node.js 22 or later (inherited from upstream's `engines` field).
+
+Measured on Node 22.22.2 / Windows: `601 passing, 8 pending`, `npm run lint` clean.
+
+### Layout
+
+```
+lib/probe/
+  index.js             public API: analyze, repair, locate, decodeBest
+  detect.js            analyze(): BOM → ASCII → Unicode validation → candidate round trips
+  repair.js            repair(): mojibake chains, lossless round-trip check, damage report
+  unicode-validate.js  UTF-8/16/32 structural validation with byte-accurate errors
+  charset.js           candidate list and the "can this codec explain these bytes?" test
+  blocks.js            Unicode block classification and the naturalness score
+  commonness.js        how-common-is-this-text, judged by the code pages themselves
+bin/encprobe.js        CLI
+test/probe/            94 tests
+docs/evidence.md       every number in this README, and the failed experiments
+```

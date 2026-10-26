@@ -40,7 +40,7 @@ module.exports = function (config) {
       target: ["web"],
       resolve: {
         alias: {
-          "iconv-lite": path.dirname(require.resolve("iconv-lite/package.json")),
+          encforensics: path.dirname(require.resolve("encforensics/package.json")),
           iconv: false // Native binding used only by Node-only libiconv cross-checks.
         },
         fallback: {

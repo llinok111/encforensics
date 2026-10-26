@@ -1,5 +1,5 @@
 import assert from "assert"
-import iconv from "iconv-lite"
+import iconv from "encforensics"
 
 const utils = {
   setIconvLite (iconv) {

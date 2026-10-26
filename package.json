@@ -1,32 +1,39 @@
 {
-    "name": "iconv-lite",
-    "description": "Convert character encodings in pure javascript.",
-    "version": "1.0.0-alpha.3",
+    "name": "encforensics",
+    "description": "Character encoding forensics: determine, explain and repair text encodings. Built on iconv-lite.",
+    "version": "1.0.0",
     "license": "MIT",
     "keywords": [
         "iconv",
         "convert",
         "charset",
-        "icu"
+        "encoding",
+        "detect",
+        "mojibake",
+        "forensics"
     ],
     "files": [
         "backends/",
+        "bin/",
         "lib/",
         "encodings/",
         "types/"
     ],
+    "bin": {
+        "encprobe": "./bin/encprobe.js"
+    },
     "author": "Alexander Shtuchkin <ashtuchkin@gmail.com>",
     "main": "./lib/index-node.js",
     "typings": "./lib/index.d.ts",
-    "homepage": "https://github.com/pillarjs/iconv-lite",
-    "bugs": "https://github.com/pillarjs/iconv-lite/issues",
+    "homepage": "https://github.com/llinok111/encforensics",
+    "bugs": "https://github.com/llinok111/encforensics/issues",
     "funding": {
         "type": "opencollective",
         "url": "https://opencollective.com/express"
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/pillarjs/iconv-lite.git"
+        "url": "https://github.com/llinok111/encforensics.git"
     },
     "engines": {
         "node": ">=22"
@@ -35,13 +42,14 @@
         "lint": "eslint",
         "lint:fix": "eslint --fix",
         "generate": "npm run generate --workspaces --if-present",
-        "test": "mocha --reporter spec --check-leaks",
-        "test:ci": "c8 --check-coverage=false --reporter=none mocha --check-leaks --forbid-only && c8 --no-clean --reporter=lcovonly --reporter=text mocha --require ./test/env/web-backend.js --forbid-only --grep '#node-web'",
+        "test": "mocha --reporter spec --check-leaks \"test/*.test.js\" \"test/probe/*.test.js\"",
+        "test:probe": "mocha --reporter spec --check-leaks \"test/probe/*.test.js\"",
+        "test:ci": "c8 --check-coverage=false --reporter=none mocha --check-leaks --forbid-only \"test/*.test.js\" \"test/probe/*.test.js\" && c8 --no-clean --reporter=lcovonly --reporter=text mocha --require ./test/env/web-backend.js --forbid-only --grep '#node-web'",
         "test:cov": "c8 --check-coverage=false --reporter=none mocha --check-leaks && c8 --no-clean --reporter=html --reporter=text mocha --require ./test/env/web-backend.js --grep '#node-web'",
         "test:node-web": "mocha --require ./test/env/web-backend.js --grep '#node-web'",
         "test:performance": "node --allow-natives-syntax performance/index.js",
         "test:typescript": "tsc && attw --pack --profile esm-only",
-        "test:webpack": "npm pack && mv iconv-lite-*.tgz test/webpack/iconv-lite.tgz && cd test/webpack && npm install && npm run test && rm iconv-lite.tgz && rm -r node_modules",
+        "test:webpack": "npm pack && mv encforensics-*.tgz test/webpack/encforensics.tgz && cd test/webpack && npm install && npm run test && rm encforensics.tgz && rm -r node_modules",
         "test:wpt": "node test/wpt/run.js",
         "typegen": "node generation/gen-typings.js"
     },
@@ -83,6 +91,10 @@
         "./backends/*.js": "./backends/*.js",
         "./encodings/*.js": "./encodings/*.js",
         "./lib/*.js": "./lib/*.js",
+        "./probe": {
+            "types": "./lib/probe/index.d.ts",
+            "default": "./lib/probe/index.js"
+        },
         "./package.json": "./package.json"
     }
 }

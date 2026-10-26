@@ -1,10 +1,10 @@
-import iconv, { encode, decode, getEncoder } from "iconv-lite"
-import type { Encoding } from "iconv-lite"
+import iconv, { encode, decode, getEncoder } from "encforensics"
+import type { Encoding } from "encforensics"
 import { expectTypeOf } from "expect-type"
 
 // Default and named ESM exports preserve the output type of each entry point.
-import webIconv, { encode as webEncode, getEncoder as webEncoder } from "iconv-lite/web"
-import webBackend from "iconv-lite/backends/web.js"
+import webIconv, { encode as webEncode, getEncoder as webEncoder } from "encforensics/web"
+import webBackend from "encforensics/backends/web.js"
 
 expectTypeOf(iconv._canonicalizeEncoding).toBeFunction()
 expectTypeOf(iconv.encode).toBeFunction()

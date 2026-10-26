@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
-import iconv, { encode, decode, encodeStream } from "iconv-lite"
+import iconv, { encode, decode, encodeStream } from "encforensics"
 
 // Isolated processes avoid sharing backend selection and initialized codec caches.
 describe("ES module entry points", function () {
@@ -17,7 +17,7 @@ describe("ES module entry points", function () {
   it("supports dynamic import from CommonJS", function () {
     execFileSync(process.execPath, ["--input-type=commonjs", "-e", `
       (async () => {
-        const { default: iconv } = await import("iconv-lite")
+        const { default: iconv } = await import("encforensics")
         if (iconv.decode(iconv.encode("中文", "gbk"), "gbk") !== "中文") throw new Error("Round trip failed")
       })().catch(error => { console.error(error); process.exitCode = 1 })
     `], { cwd: fileURLToPath(new URL("..", import.meta.url)), stdio: "pipe" })

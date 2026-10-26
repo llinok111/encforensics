@@ -1,7 +1,7 @@
 import { strict as assert } from "assert"
-import iconv from "iconv-lite"
+import iconv from "encforensics"
 
-describe("iconv-lite", function () {
+describe("encforensics", function () {
   it("can be imported successfully", function () {
     // Emulate more complex environments that are both web- and node.js-compatible (e.g. Electron renderer process).
     // See https://github.com/ashtuchkin/iconv-lite/issues/204 for details.

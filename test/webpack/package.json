@@ -23,7 +23,7 @@
     "webpack": "^5.103.0"
   },
   "dependencies": {
-    "iconv-lite": "file:iconv-lite.tgz"
+    "encforensics": "file:encforensics.tgz"
   },
   "type": "module"
 }
