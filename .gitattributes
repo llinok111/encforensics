@@ -1,3 +1,7 @@
+# Keep line endings identical on every platform. The vendored WPT files below are
+# additionally byte-sensitive and are pinned explicitly.
+* text=auto eol=lf
+
 # Vendored Web Platform Tests and WHATWG index data — keep byte-identical to
 # upstream (always LF) so they don't drift on Windows checkouts.
 test/wpt/upstream/** text eol=lf
