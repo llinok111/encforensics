@@ -281,6 +281,24 @@ The full list, so the diff can be audited:
    field, so the rename breaks them otherwise. This was discovered by `npm test`
    failing with `ERR_MODULE_NOT_FOUND` after the rename.
 3. `README.md` → `docs/upstream-readme-iconv-lite.md`.
+4. `test/wpt/UPSTREAM` → `test/wpt/UPSTREAM.txt`, plus the three references to it
+   (`test/wpt/README.md`, `test/wpt/update.js`, `.github/workflows/wpt-update.yml`).
+
+### 7.1 A Windows defect inherited from upstream
+
+Upstream ships `test/wpt/UPSTREAM` (a two-line file naming the WPT revision) alongside
+the directory `test/wpt/upstream/`. The names differ only in case. On a case-insensitive
+filesystem they are the same path, so:
+
+- `git clone` silently leaves `test/wpt/upstream/` **empty** (20 files missing);
+  `git status` then reports 20 deletions.
+- Extracting the delivery ZIP fails outright:
+  `FileExistsError: [WinError 183] ... 'test/wpt/upstream'`.
+
+Neither symptom points at the cause — the clone looks fine until you run `git status`.
+The fix is a rename; it changes no test behaviour, and `npm run test:wpt` still resolves
+the revision file. This is recorded because it will recur for anyone who clones this
+repository (or upstream) on Windows.
 
 No file under `lib/`, `encodings/` or `backends/` (excluding the new `lib/probe/`) was
 modified.

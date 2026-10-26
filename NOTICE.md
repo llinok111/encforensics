@@ -71,6 +71,15 @@ Complete list. Auditable with `git diff <base-revision> HEAD`.
    `ERR_MODULE_NOT_FOUND` immediately after the rename.
 3. **`README.md`** — moved to `docs/upstream-readme-iconv-lite.md`; a new README
    documents this fork.
+4. **`test/wpt/UPSTREAM` → `test/wpt/UPSTREAM.txt`** — a Windows fix. Upstream ships a
+   file `test/wpt/UPSTREAM` (the Web Platform Tests source commit) next to a directory
+   `test/wpt/upstream/` (the vendored WPT tree). Those two names differ only in case, so
+   on a case-insensitive filesystem — Windows and default macOS — the checkout cannot
+   create both: `git clone` leaves the directory empty and any ZIP extraction fails with
+   `FileExistsError`. Renaming the file resolves it. Three references were updated with
+   it: `test/wpt/README.md`, `test/wpt/update.js` (the writer) and
+   `.github/workflows/wpt-update.yml`. Found by the independent acceptance step, when
+   extracting the delivery ZIP on Windows failed.
 
 No file under `lib/` (other than the new `lib/probe/`), `encodings/` or `backends/`
 was modified. The conversion tables, codecs, streaming API, browser backend and the
